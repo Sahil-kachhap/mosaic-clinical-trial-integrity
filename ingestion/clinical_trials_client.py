@@ -28,7 +28,7 @@ class ClinicalTrialsClient:
         self._session: requests.Session | None = None
 
     async def __aenter__(self) -> "ClinicalTrialsClient":
-        self._session = requests.Session
+        self._session = requests.Session()
         self._session.headers.update(HEADERS)
         logger.info("ClinicalTrials client opened")
         return self
@@ -48,10 +48,10 @@ class ClinicalTrialsClient:
         page_number = 0
 
         logger.info(
-            f"Searching studies |"
-            f"Condition = {condition}"
-            f"Intervention = {intervention}"
-            f"Sponsor = {sponsor}"
+            f"Searching studies | "
+            f"Condition = {condition} | "
+            f"Intervention = {intervention} | "
+            f"Sponsor = {sponsor} | "
             f"Max Results = {max_results}"
         )
 
@@ -64,7 +64,6 @@ class ClinicalTrialsClient:
                 status=status,
                 page_token=next_page_token
             )
-
             response_data = await self._fetch_page(params=params)
             if not response_data:
                 break
@@ -150,7 +149,7 @@ class ClinicalTrialsClient:
         stop=stop_after_attempt(MAX_RETRIES),
         wait=wait_exponential(multiplier=1, min=1, max=8),
         retry=retry_if_exception_type(
-            requests.exceptions.Timeout, requests.exceptions.ConnectionError
+            (requests.exceptions.Timeout, requests.exceptions.ConnectionError)
         )
     )
     async def _fetch_page(self, params: dict[str, Any]) -> dict[str, Any] | None:

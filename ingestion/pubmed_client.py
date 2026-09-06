@@ -25,10 +25,11 @@ class PubMedClient:
 
     async def __aenter__(self) -> "PubMedClient":
         self._client = httpx.AsyncClient(
-            timeout=httpx.Timeout(REQUEST_TIMEOUT))
-        headers = {
+            timeout=httpx.Timeout(REQUEST_TIMEOUT),
+            headers = {
             "Accept": "application/json",
-        }
+            }
+        )
         logger.info("Pubmed client opened")
         return self
 
@@ -37,13 +38,41 @@ class PubMedClient:
             await self._client.aclose()
             logger.info("Pubmed client closed")
 
+    async def fetch_papers_for_trial(
+        self,
+        nct_id: str,
+        max_results: int = 50,
+    ) -> list[dict[str, Any]]:
+        logger.info(f"Fetching PubMed papers | nct_id={nct_id}")
+
+        paper_ids = await self._search_paper_ids(
+            nct_id=nct_id,
+            max_results=max_results,
+        )
+
+        if not paper_ids:
+            logger.info(f"No PubMed papers found | nct_id={nct_id}")
+            return []
+
+        logger.info(f"Found {len(paper_ids)} paper IDs | nct_id={nct_id}")
+
+        papers = await self._fetch_paper_details(paper_ids=paper_ids)
+
+        logger.info(
+            f"PubMed fetch complete | "
+            f"nct_id={nct_id} | "
+            f"papers_returned={len(papers)}"
+        )
+
+        return papers
+
     async def fetch_paper_for_trials(self, nct_ids: list[str], max_per_trial: int = 20) -> dict[str, list[dict[str, Any]]]:
         results: dict[str, list[dict[str, Any]]] = {}
 
         for i, nct_id in enumerate(nct_ids):
             logger.info(
                 f"Processing Trial {i+1}/{len(nct_ids)} | nct_id={nct_id}")
-            papers = await self.fetch_paper_for_trials(nct_id=nct_id, max_results=max_per_trial)
+            papers = await self.fetch_papers_for_trial(nct_id=nct_id, max_results=max_per_trial)
             results[nct_id] = papers
 
             if i < len(nct_ids)-1:
@@ -54,7 +83,7 @@ class PubMedClient:
         stop=stop_after_attempt(MAX_RETRIES),
         wait=wait_exponential(multiplier=1, min=1, max=8),
         retry=retry_if_exception_type(
-            httpx.TimeoutException, httpx.ConnectError)
+            (httpx.TimeoutException, httpx.ConnectError))
     )
     async def _search_paper_ids(self, nct_id: str, max_results: int) -> list[str]:
         try:
@@ -68,7 +97,7 @@ class PubMedClient:
             response = await self._client.get(f"{BASE_URL}/esearch.fcgi", params=params)
             response.raise_for_status()
             data = response.json()
-            id_list = data.get("esearchresult, {}").get("idlist", [])
+            id_list = data.get("esearchresult", {}).get("idlist", [])
             await asyncio.sleep(RATE_LIMIT_SLEEP)
             return id_list
         except httpx.TimeoutException:
@@ -94,7 +123,7 @@ class PubMedClient:
         for batch_num, batch in enumerate(batches):
             logger.info(
                 f"Fetching Paper Details | batch = {batch_num+1}/{len(batches)} | papers in batch = {len(batch)}")
-            batch_papers = await self._fetch_paper_details(paper_ids=batch)
+            batch_papers = await self._fetch_batch(paper_ids=batch)
             all_papers.extend(batch_papers)
             if batch_num < len(batches) - 1:
                 await asyncio.sleep(RATE_LIMIT_SLEEP)
@@ -104,7 +133,7 @@ class PubMedClient:
         stop=stop_after_attempt(MAX_RETRIES),
         wait=wait_exponential(multiplier=1, min=1, max=8),
         retry=retry_if_exception_type(
-            httpx.ConnectError, httpx.TimeoutException)
+            (httpx.ConnectError, httpx.TimeoutException))
     )
     async def _fetch_batch(self, paper_ids: list[str]) -> list[dict[str, Any]]:
         try:
@@ -137,10 +166,10 @@ class PubMedClient:
 
         try:
             root = ET.fromstring(xml_text)
-            for article in root.findall(".//PubMedArticle"):
+            for article in root.findall(".//PubmedArticle"):
                 paper = self._extract_paper_fields(article)
-            if paper:
-                papers.append(paper)
+                if paper:
+                    papers.append(paper)
         except ET.ParseError as e:
             logger.error(f"Failed to parse pubmed xml response | error = {e}")
         return papers
