@@ -31,6 +31,14 @@ class GCSStore:
         logger.info(f"Saved Raw Paper | pmid = {pmid} | path = {gcs_path}")
         return gcs_path
     
+    async def save_parsed_study(self, study: ParsedStudy) -> str:
+        gcs_path = f"{PREFIX_PROCESSED_STUDIES}/{study.nct_id}.json"
+        await self._upload_json(path=gcs_path, data=study.model_dump())
+        logger.info(
+            f"Saved parsed study | nct_id={study.nct_id} | path={gcs_path}"
+        )
+        return gcs_path
+    
     async def save_parsed_paper(self, paper: ParsedPaper)->str:
         gcs_path = f"{PREFIX_PROCESSED_PAPERS}/{paper.pmid}.json"
         await self._upload_json(path=gcs_path, data=paper.model_dump())
