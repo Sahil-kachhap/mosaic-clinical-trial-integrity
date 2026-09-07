@@ -88,8 +88,7 @@ class Chunker:
             sections.append(f"Enrollements: {study.enrollment} participants")
 
         if study.protocol_amendments:
-            sections.append(
-                f"Protocol Amendments: {', '.join(study.protocol_amendments)} filed")
+            sections.append(f"Protocol Amendments: {len(study.protocol_amendments)} filed")
 
         return "\n".join(sections)
 
@@ -145,5 +144,5 @@ class Chunker:
             )
             chunks.append(chunk)
             chunk_index += 1
-            logger.info(f"Split Completed | nct_id = {nct_id} | source = {source} | chunk_index = {chunk_index} | word_count = {word_count} | chunk_size = {CHUNK_SIZE} | overlap_size = {OVERLAP_SIZE}")
-            return chunk
+        logger.info(f"Split Completed | nct_id = {nct_id} | source = {source} | chunk_index = {chunk_index} | word_count = {word_count} | chunk_size = {CHUNK_SIZE} | overlap_size = {OVERLAP_SIZE}")
+        return chunks
