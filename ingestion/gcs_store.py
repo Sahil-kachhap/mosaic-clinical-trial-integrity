@@ -64,10 +64,10 @@ class GCSStore:
             nct_id = filename.replace(".json","")
             if nct_id:
                 nct_ids.append(nct_id)
-            logger.info(f"Listed Processed Studies | count = {len(nct_ids)}")
-            return nct_ids
-    
-    async def _upload_json(self, path:str, data: dict[str, Any]) -> None:
+        logger.info(f"Listed Processed Studies | count = {len(nct_ids)}")
+        return nct_ids
+
+    async def _upload_json(self, path: str, data: dict[str, Any]) -> None:
         json_bytes = json.dumps(data, indent=2, default=str).encode("utf-8")
         blob = self._bucket.blob(path)
         await asyncio.to_thread(
