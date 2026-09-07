@@ -15,6 +15,11 @@ class Settings(BaseSettings):
         description="Groq API Key for LLM"
     )
 
+    jina_api_key:str = Field(
+        ...,
+        description="JinaEmbedding API Key"
+    )
+
     embedding_model: str = Field(
         default="jina-embeddings-v5-text-small",
         description="model used to generate the embeddings"
