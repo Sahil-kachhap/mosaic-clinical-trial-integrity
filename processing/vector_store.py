@@ -199,3 +199,12 @@ class VectorStore:
 
         exists = count > 0
         return exists
+
+    async def get_chunks_for_study(self, nct_id: str) -> str:
+        async with self._pool.acquire() as conn:
+            result = await conn.fetch("SELECT chunk_text FROM chunks WHERE nct_id = $1", nct_id)
+        
+        if result is None:
+            return []
+        
+        return result
